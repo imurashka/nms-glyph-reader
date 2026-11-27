@@ -23,13 +23,13 @@ jobs:
             asset: nms-glyph-reader-macos
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: cargo build --release --locked
       - run: test "$(target/release/${{ matrix.built }} tests/pictures/14.jpg)" = "217EB09D79D7 01D6:002F:01D6:017E Euclid"
         shell: bash
       - run: mv target/release/${{ matrix.built }} ${{ matrix.asset }}
         shell: bash
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.asset }}
           path: ${{ matrix.asset }}
@@ -38,7 +38,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           merge-multiple: true
       - run: sha256sum nms-glyph-reader.exe nms-glyph-reader-linux nms-glyph-reader-macos > SHA256SUMS
