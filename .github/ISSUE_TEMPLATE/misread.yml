@@ -1,0 +1,32 @@
+name: A screenshot read wrong
+description: The reader gave a wrong address or galaxy, or none where the screenshot shows one.
+title: "Misread: "
+body:
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Drag the original file here. A cropped or recompressed copy may read differently.
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: What the screenshot shows
+      description: The twelve glyphs as hex digits, and the galaxy if it is shown.
+      placeholder: 217EB09D79D7 Euclid
+    validations:
+      required: true
+  - type: input
+    id: answer
+    attributes:
+      label: What the reader printed
+      placeholder: no address
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The release you downloaded, or the crate version.
+      placeholder: "1.0.0"

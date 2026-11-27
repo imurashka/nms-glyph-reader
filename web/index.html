@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NMS Glyph Reader: the portal address from a No Man’s Sky screenshot</title>
+<meta name="description" content="Drop a No Man’s Sky screenshot and get its portal address, galactic coordinates and galaxy. The glyphs are read in your browser; nothing is uploaded.">
+<link rel="canonical" href="https://imurashka.github.io/nms-glyph-reader/">
+<link rel="icon" href="brand/favicon.svg" type="image/svg+xml">
+<meta property="og:title" content="NMS Glyph Reader">
+<meta property="og:description" content="Drop a No Man’s Sky screenshot and get its portal address and galaxy, read in your browser.">
+<meta property="og:image" content="https://imurashka.github.io/nms-glyph-reader/brand/hub.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  @font-face { font-family: 'Jost'; src: url('brand/Jost-latin.woff2') format('woff2'); font-weight: 300 700; font-display: swap; }
+  @font-face { font-family: 'Roboto'; src: url('brand/Roboto-latin.woff2') format('woff2'); font-weight: 100 900; font-display: swap; }
+  :root {
+    color-scheme: dark;
+    --ground: #17222c;
+    --panel: linear-gradient(rgba(255, 255, 255, .05), rgba(255, 255, 255, 0) 40%), rgba(10, 15, 21, .55);
+    --line: rgba(255, 255, 255, .18);
+    --text: #efe6d3;
+    --dim: rgba(239, 230, 211, .64);
+    --underline: rgba(239, 230, 211, .35);
+    --edge: #ffffffbf;
+    --edge-dim: #ffffff38;
+    --plate: #ffffff12;
+    --hover: .14s;
+    --face-caps: 'Jost', 'Futura', sans-serif;
+    --face-text: 'Roboto', system-ui, sans-serif;
+    --type-label: .8rem;
+    --type-text: 1rem;
+    --beat: .5rem;
+    --breath: clamp(.5rem, 2.4vh, calc(5 * .5rem));
+    --frame: 1160px;
+    --side: max(clamp(16px, 4vw, 40px), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+    --crown: calc(6.5 * var(--beat));
+    --z-under: -1;
+    --z-crown: 10;
+    font-size: max(12px, min(16px + (-0.02 * max(0px, 768px - 100svh)), clamp(13px, 1.38vw, 16px)));
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { background: var(--ground); }
+  body { position: relative; display: flex; flex-direction: column; min-height: 100svh; margin: 0; color: var(--text); font: 15px/1.5 var(--face-text); }
+  body.empty { height: 100svh; overflow: hidden; }
+  a { color: inherit; }
+
+  .ground { --screen: 100svh; --period: calc(2.4 * var(--screen)); --lead: calc(.6 * var(--screen)); --place: 0 calc(-1 * var(--lead)) / 100% var(--period) no-repeat; --sun: calc(.72 * var(--screen)); --margins: linear-gradient(90deg, #000 calc(50% - var(--frame) / 2 - 100px), transparent calc(50% - var(--frame) / 2), transparent calc(50% + var(--frame) / 2), #000 calc(50% + var(--frame) / 2 + 100px)); position: fixed; top: 0; left: 0; right: 0; height: 100lvh; overflow: hidden; z-index: var(--z-under); will-change: transform; background: linear-gradient(180deg, var(--ground) var(--crown), #17222cd1 calc(var(--crown) + .04 * var(--screen)), #17222c75 calc(var(--crown) + .11 * var(--screen)), #17222c29 calc(var(--crown) + .18 * var(--screen)), #17222c00 calc(var(--crown) + .26 * var(--screen))) top / 100% calc(var(--crown) + .26 * var(--screen)) no-repeat, radial-gradient(max(120vw, 900px) calc(.54 * var(--screen)) at 50% calc(var(--lead) + var(--sun)), #b03a3066 0%, #842a2a52 28%, #541e2433 60%, transparent 100%) var(--place), radial-gradient(max(110vw, 800px) calc(.72 * var(--screen)) at 6% calc(.8 * var(--screen)), #32607457 0%, #264c5e3d 34%, #264c5e2e 66%, transparent 100%) var(--place), radial-gradient(max(80vw, 600px) calc(.55 * var(--screen)) at 96% calc(.86 * var(--screen)), #263c4ed9 0%, #20304059 55%, transparent 100%) var(--place), linear-gradient(180deg, transparent calc(.45 * var(--screen)), #2c244252 calc(.85 * var(--screen)), #3c2036b8 calc(1.2 * var(--screen)), #3a2129 calc(1.6 * var(--screen)), #3a21298c calc(1.85 * var(--screen)), #3a212933 calc(2.1 * var(--screen)), transparent calc(2.35 * var(--screen))) var(--place), radial-gradient(70vw 42svh at 74% 50%, #6048821a 0%, transparent 100%) 0 calc(.9 * var(--screen)) / 100% calc(2.3 * var(--screen)), radial-gradient(90vw 48svh at 24% 50%, #34607a1c 0%, transparent 100%) 0 calc(1.7 * var(--screen)) / 100% calc(2.9 * var(--screen)), radial-gradient(80vw 36svh at 58% 50%, #783e4617 0%, transparent 100%) 0 calc(2.4 * var(--screen)) / 100% calc(3.7 * var(--screen)), var(--ground); }
+  .ground::before { content: ""; position: absolute; inset: calc(-.2 * var(--screen)) -20% auto; height: calc(1.5 * var(--screen)); background: linear-gradient(112deg, rgba(0, 0, 0, 0) 26%, rgba(255, 255, 255, 0.024) 31%, rgba(0, 0, 0, 0) 36%), linear-gradient(112deg, rgba(0, 0, 0, 0) 42%, rgba(255, 255, 255, 0.035) 44%, rgba(0, 0, 0, 0) 47%), linear-gradient(-112deg, rgba(0, 0, 0, 0) 30%, rgba(255, 255, 255, 0.03) 33%, rgba(0, 0, 0, 0) 37%), linear-gradient(-112deg, rgba(0, 0, 0, 0) 56%, rgba(255, 255, 255, 0.02) 60%, rgba(0, 0, 0, 0) 66%), linear-gradient(112deg, rgba(255, 255, 255, 0.04) 0%, rgba(0, 0, 0, 0) 34%); mask-image: linear-gradient(rgb(0, 0, 0) 30%, rgba(0, 0, 0, 0) 75%); }
+  .ground svg { position: absolute; left: 50%; top: var(--sun); width: 130vw; height: 130vw; transform: translate(-50%, -50%); opacity: 0.7; mask-image: var(--margins); }
+  .ground .nebula { position: absolute; left: 50%; top: calc(.62 * var(--screen)); width: 150vmax; height: 150vmax; transform: translate(-50%, -50%); background: radial-gradient(26% 22% at 32% 40%, rgba(70, 150, 178, 0.1) 0%, rgba(0, 0, 0, 0) 70%), radial-gradient(24% 20% at 68% 58%, rgba(150, 90, 170, 0.2) 0%, rgba(0, 0, 0, 0) 72%), radial-gradient(30% 16% at 52% 30%, rgba(124, 196, 255, 0.09) 0%, rgba(0, 0, 0, 0) 70%); animation: sky-turn 320s linear calc(-1s * var(--sky-clock, 0)) infinite; }
+  .night { position: fixed; top: 0; left: 0; width: 100%; height: 100lvh; overflow: hidden; z-index: var(--z-under); }
+  .night > * { position: absolute; top: 0; left: 0; width: calc(100% + var(--tile-x)); height: calc(100% + var(--tile-y)); background-size: var(--tile-x) var(--tile-y); }
+  .night .far { --tile-x: 820px; --tile-y: 710px; background-image: url("brand/sky/far.svg"); animation: sky-drift 580s linear calc(-1s * var(--sky-clock, 0)) infinite; }
+  .night .near { --tile-x: 1130px; --tile-y: 970px; background-image: url("brand/sky/near.svg"); animation: sky-drift 320s linear calc(-1s * var(--sky-clock, 0)) infinite reverse; }
+  @keyframes sky-drift { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(calc(-1 * var(--tile-x)), calc(-1 * var(--tile-y)), 0); } }
+  @keyframes sky-turn { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+  @media (width >= 901px) {
+    .ground { background: radial-gradient(120% 80% at 50% 118%, rgba(214, 70, 52, 0.85) 0%, rgba(150, 44, 40, 0.55) 22%, rgba(90, 30, 34, 0.25) 42%, rgba(0, 0, 0, 0) 62%), radial-gradient(70% 60% at 8% -5%, rgba(62, 132, 150, 0.95) 0%, rgba(48, 104, 122, 0.6) 30%, rgba(0, 0, 0, 0) 65%), radial-gradient(60% 50% at 95% 10%, rgba(38, 60, 78, 0.9) 0%, rgba(0, 0, 0, 0) 60%), linear-gradient(rgb(28, 43, 54) 0%, rgb(23, 34, 44) 45%, rgb(36, 35, 44) 70%, rgb(58, 33, 41) 100%); }
+    .ground::before { inset: -20%; height: auto; mask-image: none; }
+    .ground::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0.8px, rgba(0, 0, 0, 0) 1.4px); background-size: 22px 22px; mask-image: var(--margins), linear-gradient(180deg, transparent 45%, #000 100%); mask-composite: intersect; }
+    .ground svg { top: 118%; }
+    .ground .nebula { top: 50%; background: radial-gradient(26% 22% at 32% 40%, rgba(70, 150, 178, 0.32) 0%, rgba(0, 0, 0, 0) 70%), radial-gradient(24% 20% at 68% 58%, rgba(150, 90, 170, 0.26) 0%, rgba(0, 0, 0, 0) 72%), radial-gradient(30% 16% at 52% 30%, rgba(124, 196, 255, 0.16) 0%, rgba(0, 0, 0, 0) 70%); }
+  }
+
+  .crown { position: sticky; top: 0; z-index: var(--z-crown); border-bottom: 1px solid var(--edge-dim); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); background: rgba(23, 34, 44, .62); color: var(--text); font: 400 var(--type-text)/normal var(--face-text); }
+  .crown .within { display: flex; justify-content: space-between; align-items: center; gap: calc(2 * var(--beat)); min-height: var(--crown); max-width: calc(var(--frame) + 2 * var(--side)); padding: 0 var(--side); margin: 0 auto; }
+  .crown .mark { display: contents; font: inherit; }
+  .wordmark { display: flex; align-items: baseline; gap: .6em; font-family: var(--face-caps); letter-spacing: .16em; text-transform: uppercase; }
+  .wordmark .sign { display: flex; flex: 0 0 auto; align-self: center; width: 11px; }
+  .wordmark .sky { color: var(--dim); }
+  .sign svg { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; }
+  .crown .ways { --reach: 1.1em; display: flex; align-self: stretch; margin-right: calc(-1 * var(--reach) - .14em); font-family: var(--face-caps); }
+  .crown .way { display: flex; align-items: center; gap: .55em; padding: 0 var(--reach); border-left: 1px solid var(--edge-dim); color: var(--dim); letter-spacing: .14em; text-transform: uppercase; text-decoration: none; transition: color var(--hover) ease, background-color var(--hover) ease; }
+  .crown .way:first-child { border-left-color: transparent; }
+  .crown .way svg { flex: 0 0 auto; width: 1.35em; height: 1.35em; }
+  .crown .way.discord svg { color: #8c96ff; }
+  .crown .way:focus-visible { color: var(--text); outline: 1px solid var(--edge); outline-offset: -6px; background: var(--plate); }
+  @media (hover: hover) { .crown .way:hover { color: var(--text); background: var(--plate); } }
+  @media (width >= 901px) { .crown { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); background: rgba(10, 15, 21, .66); } }
+  @media (width <= 700px) {
+    .wordmark { display: grid; grid-template-columns: auto auto; grid-template-areas: "sign sky" "sign name"; align-items: center; gap: .15em .6em; }
+    .wordmark .sign { grid-area: sign; width: 32px; margin: -2px 0 -2px -3px; }
+    .wordmark .sky { grid-area: sky; font-size: var(--type-label); line-height: 1; letter-spacing: .215em; white-space: nowrap; }
+    .wordmark .name { grid-area: name; font-size: 1.3rem; line-height: 1; letter-spacing: .2em; white-space: nowrap; }
+    .crown .ways { --reach: .7em; margin-right: calc(env(safe-area-inset-right, 0px) - var(--side)); }
+    .crown .way > span { display: none; }
+  }
+  @media (width <= 359px) { .crown .ways { --reach: .5em; } .wordmark .sign { width: 24px; margin-left: -2px; } .wordmark .name { font-size: 1.1rem; } }
+
+  main { flex: 1 0 auto; width: 100%; max-width: calc(var(--frame) + 2 * var(--side)); margin: 0 auto; padding: var(--breath) var(--side) 40px; }
+  body.empty main { flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: 28px; }
+
+  #drop { display: none; align-items: center; justify-content: center; border: 1px dashed var(--line); color: var(--dim); transition: border-color 140ms, background 140ms; }
+  #drop.over { border-color: var(--text); background: rgba(127, 127, 127, .06); }
+  body.empty #drop { display: flex; flex: 1; min-height: 0; overflow: auto; padding: 32px; }
+  body:not(.empty) #drop.over { display: flex; position: fixed; inset: 16px; z-index: 30; background: rgba(10, 15, 21, .78); }
+  .compact { text-align: center; padding: 16px; }
+  body.empty .compact { display: none; }
+  .empty-view { display: none; grid-template-columns: minmax(0, 380px) minmax(0, 440px); gap: 64px; align-items: start; }
+  body.empty .empty-view { display: grid; }
+  .pitch { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+  .pitch h2 { margin: -6px 0 0; font: 500 32px/1.15 var(--face-caps); color: var(--text); }
+  .pitch p { margin: 0; font-size: 16px; line-height: 1.55; color: var(--dim); }
+  .pitch .act { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+  .sample { display: flex; flex-direction: column; gap: 10px; }
+  .sample .shot { position: relative; overflow: hidden; border: 1px solid var(--line); }
+  .sample .shot img { display: block; width: 100%; }
+  .sample .ring { position: absolute; left: 0; top: 92.6%; width: 21.2%; height: 7%; border: 2px solid var(--text); border-radius: 3px; }
+  .sample .corner { display: block; width: 100%; border: 1px solid var(--line); }
+  @media (width <= 860px) { .empty-view { grid-template-columns: minmax(0, 1fr); gap: 32px; } }
+
+  button.primary { height: 44px; padding: 0 1.6em; border: none; background: var(--text); color: var(--ground); font: 500 15px/1 var(--face-caps); letter-spacing: .14em; text-transform: uppercase; cursor: pointer; }
+  button.primary:hover { opacity: .9; }
+  button.link { padding: 0; border: none; background: none; color: var(--text); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  button.plain, .segmented button { padding: 3px 10px; background: none; color: var(--dim); font: inherit; font-size: 13px; cursor: pointer; }
+  button.plain { border: 1px solid var(--line); }
+  button.plain:hover { color: var(--text); border-color: var(--dim); }
+  .hint, .note, .not-found { color: var(--dim); font-size: 13px; }
+  .note { margin-top: 6px; }
+
+  .toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; margin: 24px 0 8px; color: var(--dim); font-size: 14px; white-space: nowrap; }
+  .toolbar .count { display: inline-flex; align-items: center; gap: 14px; }
+  .downloads { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .segmented { display: inline-flex; border: 1px solid var(--line); overflow: hidden; }
+  .segmented button { border: none; border-left: 1px solid var(--line); }
+  .segmented button:first-child { border-left: none; }
+  .segmented button:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
+
+  #results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  #results[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #results[data-count="1"] { grid-template-columns: minmax(0, 1fr); }
+  .result { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto 1fr; grid-template-areas: "shot" "gcut" "xcut" "data"; align-content: start; background: var(--panel); border: 1px solid var(--line); isolation: isolate; }
+  .body, .pairs, .fields { display: contents; }
+  .result img.shot { grid-area: shot; display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; cursor: zoom-in; }
+  .remove { grid-area: shot; z-index: 1; align-self: start; justify-self: end; display: grid; place-items: center; width: 30px; height: 30px; margin: 8px; padding: 0; border: 1px solid rgba(255, 255, 255, .28); border-radius: 50%; background: rgba(10, 15, 21, .72); color: var(--text); cursor: pointer; transition: background-color var(--hover) ease, border-color var(--hover) ease, opacity var(--hover) ease; }
+  .remove svg { width: 14px; height: 14px; }
+  .remove:hover, .remove:focus-visible { background: #d94b4b; border-color: #d94b4b; color: #fff; }
+  .remove:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  @media (hover: hover) { .remove { opacity: 0; } .result:hover .remove, .remove:focus-visible { opacity: 1; } }
+  .glyph-cut { grid-area: gcut; margin: 16px 16px 0; }
+  .glyph-cut canvas { width: 100%; }
+  .glyphs { display: flex; justify-content: space-between; margin-top: 3px; }
+  .glyphs img { width: calc((100% - 33px) / 12); aspect-ratio: 1; }
+  .galaxy-cut { grid-area: xcut; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 10px 16px 16px; }
+  .galaxy-cut canvas { height: 28px; max-width: 100%; }
+  .cut canvas { display: block; background: #000; }
+  .cut.waiting { background: rgba(127, 127, 127, .12); animation: waiting 1.4s ease-in-out infinite alternate; }
+  .glyph-cut.waiting { aspect-ratio: 6 / 1; }
+  .galaxy-cut.waiting { width: 40%; height: 28px; }
+  @keyframes waiting { from { opacity: .5; } to { opacity: 1; } }
+  .almanac { margin-left: auto; color: var(--dim); font: 400 13px/1.3 var(--face-text); text-decoration: underline; text-decoration-color: var(--underline); text-underline-offset: 3px; white-space: nowrap; }
+  .almanac:hover, .almanac:focus-visible { color: var(--text); text-decoration-color: currentColor; }
+  .data { grid-area: data; display: grid; align-self: end; align-content: center; padding: 6px 16px; background: rgba(0, 0, 0, .28); border-top: 1px solid var(--line); }
+  .field { display: flex; flex-wrap: wrap; align-items: baseline; align-content: center; gap: 6px 12px; min-width: 0; min-height: 0; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+  .field .label { flex: none; width: 8.2rem; color: var(--dim); font: 500 var(--type-label)/1 var(--face-caps); letter-spacing: .16em; text-transform: uppercase; user-select: none; }
+  .field .value { flex: none; font: 600 16px/1.2 var(--face-text); letter-spacing: .12em; white-space: nowrap; user-select: all; }
+  .field.galaxy .value { letter-spacing: .02em; }
+  .field.missing .value { color: var(--dim); font-weight: 400; letter-spacing: .02em; user-select: none; }
+  .fields.gal:last-child .field, #results[data-count="many"] .fields.gal .field, .field.almanac-row { border-bottom-color: transparent; }
+  .almanac-row a.value { color: var(--text); font-weight: 500; letter-spacing: .02em; text-decoration: underline; text-decoration-color: var(--underline); text-underline-offset: 3px; user-select: auto; transition: text-decoration-color var(--hover) ease; }
+  .almanac-row a.value:hover, .almanac-row a.value:focus-visible { text-decoration-color: currentColor; }
+  #results[data-count="many"] .almanac-row, #results:not([data-count="many"]) .almanac { display: none; }
+  #results[data-count="3"] .field .label { width: 100%; }
+  #results[data-count="1"] .result img.shot { max-height: min(54vh, 652px); object-position: 50% 100%; }
+  @media (width >= 861px) {
+    #results[data-count="1"] .result { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto; grid-template-areas: "shot shot" "data data" "gcut xcut"; }
+    #results[data-count="1"] .data { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0; border-bottom: 1px solid var(--line); }
+    #results[data-count="1"] .field { padding: 18px 24px; border-bottom: 0; }
+    #results[data-count="1"] .field + .field, #results[data-count="1"] .fields + .fields .field, #results[data-count="1"] .almanac-row { border-left: 1px solid var(--line); }
+    #results[data-count="1"] .field .label { width: 100%; }
+    #results[data-count="1"] .field .value { font-size: 19px; }
+    #results[data-count="1"] .almanac-row .value { font-size: 15px; }
+    #results[data-count="1"] .glyph-cut, #results[data-count="1"] .galaxy-cut { margin: 22px 24px; align-self: center; }
+    #results[data-count="many"] { grid-template-columns: minmax(0, 1fr); }
+    #results[data-count="many"] .result { grid-template-columns: minmax(390px, 26rem) minmax(0, 1fr) 256px; grid-template-rows: auto 1fr; grid-template-areas: "data gcut shot" "data xcut shot"; }
+    #results[data-count="many"] .data { align-self: stretch; padding: 6px 20px; border-top: 0; border-right: 1px solid var(--line); }
+    #results[data-count="many"] .glyph-cut { margin: 14px 20px 0; }
+    #results[data-count="many"] .galaxy-cut { margin: 10px 20px 14px; }
+  }
+  @media (width <= 1100px) { #results { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (width <= 860px) { #results[data-count="1"] .data { padding: 0 16px; } }
+  @media (width <= 700px) { #results, #results[data-count="2"] { grid-template-columns: minmax(0, 1fr); } }
+
+  #view { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; overflow: auto; background: rgba(0, 0, 0, .9); cursor: zoom-out; }
+  #view .big { display: block; max-width: 100%; max-height: calc(100vh - 32px); }
+  #view .close { position: absolute; top: 10px; right: 16px; border: none; background: none; color: var(--text); font-size: 30px; cursor: pointer; }
+
+  .foot { display: flex; flex-wrap: wrap; flex-shrink: 0; justify-content: center; align-items: center; row-gap: .2em; padding: 0 var(--side) calc(1.5 * var(--beat)); color: var(--dim); font-family: var(--face-caps); font-size: .7rem; line-height: normal; letter-spacing: .16em; text-transform: uppercase; }
+  .foot .sign { display: flex; width: 5px; margin: 0 .9em; }
+  .foot .follow { display: inline-flex; align-items: center; gap: .9em; }
+  .foot .follow a { display: flex; }
+  .foot .follow svg { width: 1.15em; height: 1.15em; }
+  .foot a { color: var(--text); text-decoration: none; opacity: .8; transition: opacity var(--hover) ease; }
+  .foot a:focus-visible { opacity: 1; outline: 1px solid currentColor; outline-offset: 3px; }
+  @media (hover: hover) { .foot a:hover { opacity: 1; } }
+</style>
+</head>
+<body class="empty">
+<div class="ground" aria-hidden="true"><div class="nebula"></div><svg viewBox="0 0 400 400"><g fill="none" stroke="#ffb09a" stroke-width="0.6"><circle cx="200" cy="200" r="120" opacity="0.5"/><circle cx="200" cy="200" r="140" opacity="0.25"/><circle cx="200" cy="200" r="175" opacity="0.15"/></g></svg></div>
+<div class="night" aria-hidden="true"><div class="far"></div><div class="near"></div></div>
+<header class="crown"><div class="within"><h1 class="mark"><span class="wordmark"><span class="sky">No Man’s Sky</span> <span class="sign" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 22 12 12 22 2 12Z" fill="currentColor"/></svg></span> <span class="name">Glyph Reader</span></span></h1><nav class="ways" aria-label="Site"><a class="way discord" href="https://discord.gg/Ty9JyQQBXK" rel="noopener" target="_blank" aria-label="Bugs, finds and help on Discord" title="Bugs, finds and help on Discord"><svg viewBox="0 0 24 18" aria-hidden="true"><path d="M20.3 1.6A19.8 19.8 0 0 0 15.4.1a14 14 0 0 0-.6 1.3 18.4 18.4 0 0 0-5.5 0A14 14 0 0 0 8.6.1 19.7 19.7 0 0 0 3.7 1.6C.6 6.2-.3 10.7.2 15.1a19.9 19.9 0 0 0 6 3 14.6 14.6 0 0 0 1.3-2.1 13 13 0 0 1-2-1c.2-.1.3-.2.5-.3a14.2 14.2 0 0 0 12 0l.5.3a13 13 0 0 1-2 1c.4.8.8 1.5 1.3 2.1a19.8 19.8 0 0 0 6-3c.6-5.1-.9-9.6-3.5-13.5ZM8 12.4c-1.2 0-2.1-1.1-2.1-2.4S6.8 7.6 8 7.6s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Zm8 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Z" fill="currentColor"/></svg><span>Discord</span></a><a class="way" href="https://github.com/imurashka/nms-glyph-reader" title="Source code on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a></nav></div></header>
+<main>
+  <input id="file" type="file" accept="image/*" multiple hidden>
+  <div id="drop">
+    <div class="empty-view">
+      <div class="pitch">
+        <h2>Drop a screenshot, get its portal address</h2>
+        <p>The twelve glyphs and the galaxy name are read from any No Man’s Sky screenshot, right here in your browser. Nothing is uploaded.</p>
+        <div class="act"><button class="primary choose">Choose screenshots</button><span class="hint">or drop them anywhere · Ctrl+V</span></div>
+      </div>
+      <div class="sample" aria-hidden="true">
+        <div class="shot"><img src="brand/hub.jpg" alt=""><span class="ring"></span></div>
+        <img class="corner" src="brand/hub-corner.png" alt="">
+        <div><div class="field"><span class="label">Address</span><span class="value">217EB09D79D7</span></div><div class="field galaxy"><span class="label">Galaxy</span><span class="value">Euclid</span></div></div>
+      </div>
+    </div>
+    <div class="compact">Drop more screenshots anywhere, paste them, or <button class="link choose">choose files</button></div>
+  </div>
+  <div class="toolbar" hidden><span class="count"><span id="count"></span><button class="plain choose">Add more</button></span><span class="downloads">Download as <span class="segmented"><button data-as="txt">TXT</button><button data-as="json">JSON</button><button data-as="csv">CSV</button></span><button class="plain" id="clear">Remove all</button></span></div>
+  <div id="results"></div>
+  <div id="view" hidden><button class="close" aria-label="Close">×</button><img class="big" alt=""></div>
+</main>
+<footer class="foot"><span>Made by the creator of&nbsp;<a href="https://nmsalmanac.com/?ref=glyph-reader-web">No Man’s Sky Almanac</a></span><span class="sign" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 22 12 12 22 2 12Z" fill="currentColor"/></svg></span><span class="follow">Follow<a href="https://x.com/nmsalmanac" rel="noopener" target="_blank" aria-label="NMS Almanac on X" title="NMS Almanac on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z" fill="currentColor"/></svg></a><a href="https://bsky.app/profile/nmsalmanac.com" rel="noopener" target="_blank" aria-label="NMS Almanac on Bluesky" title="NMS Almanac on Bluesky"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.202 2.857C7.954 4.922 10.913 9.11 12 11.358c1.087-2.247 4.046-6.436 6.798-8.501C20.783 1.366 24 .213 24 3.883c0 .732-.42 6.156-.667 7.037-.856 3.061-3.978 3.842-6.755 3.37 4.854.826 6.089 3.562 3.422 6.299-5.065 5.196-7.28-1.304-7.847-2.97-.104-.305-.152-.448-.153-.327 0-.121-.05.022-.153.327-.568 1.666-2.782 8.166-7.847 2.97-2.667-2.737-1.432-5.473 3.422-6.3-2.777.473-5.899-.308-6.755-3.369C.42 10.04 0 4.615 0 3.883c0-3.67 3.217-2.517 5.202-1.026" fill="currentColor"/></svg></a></span></footer>
+<script>
+document.documentElement.style.setProperty('--sky-clock', String(Date.now() / 1000 % 9280));
+const results = document.getElementById('results');
+const toolbar = document.querySelector('.toolbar');
+const view = document.getElementById('view');
+const drop = document.getElementById('drop');
+const input = document.getElementById('file');
+let reader;
+const ready = WebAssembly.instantiateStreaming(fetch('web.wasm')).then(({ instance }) => { reader = instance.exports; });
+
+function coords(address) {
+  const part = (from, to) => parseInt(address.slice(from, to), 16);
+  const hex = n => n.toString(16).toUpperCase().padStart(4, '0');
+  return [hex((part(9, 12) + 0x7FF) & 0xFFF), hex((part(4, 6) + 0x7F) & 0xFF), hex((part(6, 9) + 0x7FF) & 0xFFF), hex(part(1, 4))].join(':');
+}
+
+function read(bytes) {
+  const pointer = reader.alloc(bytes.length);
+  new Uint8Array(reader.memory.buffer, pointer, bytes.length).set(bytes);
+  const length = reader.read_picture(pointer, bytes.length);
+  return JSON.parse(new TextDecoder().decode(new Uint8Array(reader.memory.buffer, reader.answer(), length)));
+}
+
+const field = (label, value, kind = '', none = 'not read') => value
+  ? `<div class="field ${kind}"><span class="label">${label}</span><span class="value">${value}</span></div>`
+  : `<div class="field missing ${kind}"><span class="label">${label}</span><span class="value">${none}</span></div>`;
+
+const glyphRow = address => `<div class="glyphs">${[...address].map(d => `<img src="glyphs/font_${d}.png" alt="${d}" title="${d}">`).join('')}</div>`;
+
+function crop(image, area, padX, padY) {
+  const [px, py] = [Math.round(area[3] * padX), Math.round(area[3] * padY)];
+  const [x, y] = [Math.max(0, area[0] - px), Math.max(0, area[1] - py)];
+  const [w, h] = [Math.min(image.naturalWidth - x, area[2] + 2 * px), Math.min(image.naturalHeight - y, area[3] + 2 * py)];
+  const canvas = document.createElement('canvas');
+  [canvas.width, canvas.height] = [w, h];
+  canvas.getContext('2d').drawImage(image, x, y, w, h, 0, 0, w, h);
+  return canvas;
+}
+
+function recount() {
+  const n = results.children.length;
+  toolbar.hidden = n === 0;
+  results.dataset.count = n <= 3 ? String(n) : 'many';
+  document.body.classList.toggle('empty', n === 0);
+  document.getElementById('count').textContent = `${n} ${n === 1 ? 'picture' : 'pictures'}`;
+}
+
+function zoom(url) {
+  view.querySelector('.big').src = url;
+  view.hidden = false;
+}
+
+let cardsMade = 0;
+
+function newCard(file) {
+  const card = document.createElement('div');
+  card.className = 'result';
+  card.order = cardsMade++;
+  const url = URL.createObjectURL(file);
+  card.innerHTML = `<img class="shot" src="${url}" alt="" title="${file.name}" decoding="async"><div class="body"><div class="pairs">
+    <div class="cut glyph-cut waiting"></div>
+    <div class="cut galaxy-cut waiting"></div>
+    <div class="data">
+      <div class="fields">${field('Address', null, '', 'reading…')}${field('Coordinates', null, '', 'reading…')}</div>
+      <div class="fields gal">${field('Galaxy', null, 'galaxy', 'reading…')}</div>
+    </div>
+  </div></div><button class="remove" title="Remove this picture" aria-label="Remove this picture"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>`;
+  card.querySelector('.shot').onclick = () => zoom(url);
+  card.querySelector('.remove').onclick = () => { URL.revokeObjectURL(url); card.remove(); recount(); };
+  return card;
+}
+
+async function fill(card, file) {
+  await ready;
+  if (!card.isConnected) return;
+  const found = read(new Uint8Array(await file.arrayBuffer()));
+  card.reading = { found, name: file.name };
+  const shot = card.querySelector('.shot');
+  if (found.error) return cannotOpen(card, found.error, file.name);
+  await shot.decode();
+  render(card, shot, found);
+}
+
+function cannotOpen(card, reason, name) {
+  card.querySelector('.shot').style.visibility = 'hidden';
+  card.querySelector('.body').innerHTML = `<div><div>Cannot open this picture</div><div class="note">${reason} · ${name}</div></div>`;
+}
+
+function render(card, shot, found) {
+  const body = card.querySelector('.body');
+  body.innerHTML = `<div class="pairs">
+    <div class="cut glyph-cut">${found.glyphs_area ? '' : '<span class="not-found">No glyphs found</span>'}</div>
+    <div class="cut galaxy-cut">${found.galaxy_area ? '' : '<span class="not-found">No galaxy name found</span>'}</div>
+    <div class="data">
+      <div class="fields">${field('Address', found.address)}${field('Coordinates', found.address && coords(found.address))}</div>
+      <div class="fields gal">${field('Galaxy', found.galaxy, 'galaxy')}</div>
+    </div>
+  </div>`;
+  const glyphCut = body.querySelector('.glyph-cut');
+  const galaxyCut = body.querySelector('.galaxy-cut');
+  const data = body.querySelector('.data');
+  if (found.glyphs_area) glyphCut.append(crop(shot, found.glyphs_area, 0.08, 0.12));
+  if (found.address) glyphCut.insertAdjacentHTML('beforeend', glyphRow(found.address));
+  else if (found.glyphs_area) glyphCut.insertAdjacentHTML('beforeend', '<span class="not-found">Glyphs found, but not read surely enough</span>');
+  if (found.galaxy_area) galaxyCut.append(crop(shot, found.galaxy_area, 0.15, 0.2));
+  if (found.address && found.galaxy) {
+    const planet = `https://nmsalmanac.com/planet/${found.galaxy.toLowerCase().replace(/[^a-z0-9]+/g, '-')}/${found.address}?ref=glyph-reader-web`;
+    galaxyCut.insertAdjacentHTML('beforeend', `<a class="almanac" href="${planet}" target="_blank" rel="noopener" title="This planet on NMS Almanac">Planet details</a>`);
+    data.insertAdjacentHTML('beforeend', `<div class="field almanac-row"><span class="label">Planet</span><a class="value" href="${planet}" target="_blank" rel="noopener" title="This planet on NMS Almanac">View details</a></div>`);
+  } else {
+    data.insertAdjacentHTML('beforeend', '<div class="field missing almanac-row"><span class="label">Planet</span><span class="value">not available</span></div>');
+  }
+}
+
+const formats = {
+  txt: { type: 'text/plain', extension: 'txt', line: ({ found, name }) => `${name}: ` + (found.error ? `cannot open (${found.error})`
+    : found.address ? [found.address, coords(found.address), found.galaxy].filter(Boolean).join(' ')
+    : found.galaxy ? `no address, ${found.galaxy}` : 'no address') },
+  json: { type: 'application/x-ndjson', extension: 'jsonl', line: ({ found, name }) => JSON.stringify(found.error ? { file: name, error: found.error }
+    : { file: name, address: found.address, coords: found.address ? coords(found.address) : null, galaxy: found.galaxy, galaxy_number: found.galaxy_number }) },
+  csv: { type: 'text/csv', extension: 'csv', header: 'file,address,coords,galaxy,galaxy_number,error', line: ({ found, name }) =>
+    [name, found.address, found.address && coords(found.address), found.galaxy, found.galaxy_number, found.error]
+      .map(v => v == null ? '' : String(v)).map(v => /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v).join(',') },
+};
+
+document.querySelectorAll('[data-as]').forEach(button => button.onclick = () => {
+  const format = formats[button.dataset.as];
+  const lines = [...results.children].sort((a, b) => a.order - b.order).filter(card => card.reading).map(card => format.line(card.reading));
+  const text = [...(format.header ? [format.header] : []), ...lines].join('\n') + '\n';
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([text], { type: format.type }));
+  link.download = `glyphs.${format.extension}`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+});
+
+let queue = Promise.resolve();
+
+function take(files) {
+  const pictures = [...files].filter(file => file?.type.startsWith('image/'));
+  if (!pictures.length) return;
+  const cards = pictures.map(newCard);
+  results.prepend(...cards);
+  recount();
+  cards.forEach((card, i) => { queue = queue.then(() => new Promise(r => setTimeout(r))).then(() => fill(card, pictures[i]).catch(() => { const error = 'the browser cannot show it'; card.reading = { found: { error }, name: pictures[i].name }; cannotOpen(card, error, pictures[i].name); })); });
+}
+
+view.onclick = () => { view.hidden = true; };
+document.onkeydown = e => { if (e.key === 'Escape') view.hidden = true; };
+document.getElementById('clear').onclick = () => { results.querySelectorAll('.remove').forEach(b => b.click()); };
+input.onchange = () => { take(input.files); input.value = ''; };
+document.querySelectorAll('.choose').forEach(b => b.onclick = () => input.click());
+let dragging = 0;
+document.ondragenter = e => { e.preventDefault(); dragging++; drop.classList.add('over'); };
+document.ondragleave = () => { if (--dragging <= 0) { dragging = 0; drop.classList.remove('over'); } };
+document.ondragover = e => e.preventDefault();
+document.ondrop = e => { e.preventDefault(); dragging = 0; drop.classList.remove('over'); take(e.dataTransfer.files); };
+document.onpaste = e => take([...e.clipboardData.items].map(i => i.getAsFile()));
+</script>
+</body>
+</html>

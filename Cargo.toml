@@ -1,0 +1,36 @@
+[package]
+name = "nms-glyph-reader"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Reads the portal address and the galaxy from a No Man's Sky screenshot"
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["no-mans-sky", "portal", "glyphs", "galaxy", "screenshot"]
+categories = ["command-line-utilities", "multimedia::images"]
+include = ["src/**", "tests/font/**", "tests/area.json", "README.md", "LICENSE"]
+
+[workspace]
+members = ["trainer", "web"]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+repository = "https://github.com/imurashka/nms-glyph-reader"
+
+[features]
+# For the trainer in this repository only; it can change in any release.
+train = []
+
+[dependencies]
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
+ab_glyph = "0.2.32"
+
+[dev-dependencies]
+serde_json = "1"
+
+[profile.test]
+opt-level = 3

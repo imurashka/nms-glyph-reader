@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags: ["*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            built: nms-glyph-reader.exe
+            asset: nms-glyph-reader.exe
+          - os: ubuntu-latest
+            built: nms-glyph-reader
+            asset: nms-glyph-reader-linux
+          - os: macos-latest
+            built: nms-glyph-reader
+            asset: nms-glyph-reader-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo build --release --locked
+      - run: test "$(target/release/${{ matrix.built }} tests/pictures/14.jpg)" = "217EB09D79D7 01D6:002F:01D6:017E Euclid"
+        shell: bash
+      - run: mv target/release/${{ matrix.built }} ${{ matrix.asset }}
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - run: sha256sum nms-glyph-reader.exe nms-glyph-reader-linux nms-glyph-reader-macos > SHA256SUMS
+      - run: gh release create "${{ github.ref_name }}" nms-glyph-reader.exe nms-glyph-reader-linux nms-glyph-reader-macos SHA256SUMS --repo "${{ github.repository }}" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
